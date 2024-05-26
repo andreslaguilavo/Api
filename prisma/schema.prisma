@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TIPOUSUARIO {
+  cliente
+  proveedor
+}
+
+model Usuario {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  apellido    String
+  correo      String      @unique
+  contrasena  String
+  direccion   String?
+  tipoUsuario TIPOUSUARIO
+  Carrito     Carrito[]
+  Playlist    Playlist[]
+  Pedido      Pedido[]
+}
+
+model Cancion {
+  id             Int              @id @default(autoincrement())
+  nombre         String
+  artista        String
+  duracion       Int?
+  caratula       String
+  Vinilo         Vinilo[]
+  MP3            MP3[]
+  Playlist       Playlist[]
+  PedidoDetalle  PedidoDetalle[]
+  CarritoDetalle CarritoDetalle[]
+}
+
+model Vinilo {
+  id        Int     @id @default(autoincrement())
+  cancionId Int
+  stock     Int
+  precio    Float
+  cancion   Cancion @relation(fields: [cancionId], references: [id])
+  @@unique([cancionId])
+}
+
+model MP3 {
+  id        Int     @id @default(autoincrement())
+  cancionId Int
+  tamano    String
+  calidad   String
+  precio    Float
+  cancion   Cancion @relation(fields: [cancionId], references: [id])
+}
+
+model Carrito {
+  id             Int              @id @default(autoincrement())
+  usuarioId      Int              @unique
+  actualizadoEn  DateTime         @default(now())
+  Usuario        Usuario          @relation(fields: [usuarioId], references: [id])
+  CarritoDetalle CarritoDetalle[]
+}
+
+// Strings disponibles para la columna formato de la tabla Carrito
+enum FORMATO {
+  mp3
+  vinilo
+}
+
+model CarritoDetalle {
+  carritoId Int
+  cancionId Int
+  cantidad  Int
+  formato   FORMATO
+  precio    Float
+  Carrito   Carrito @relation(fields: [carritoId], references: [id])
+  Cancion   Cancion @relation(fields: [cancionId], references: [id])
+
+  @@unique([carritoId, cancionId, formato])
+}
+
+model Playlist {
+  id        Int     @id @default(autoincrement())
+  cancionId Int
+  cancion   Cancion @relation(fields: [cancionId], references: [id])
+  Usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+}
+
+enum ESTADO {
+  pendiente
+  enCamino
+  entregado
+}
+
+model Pedido {
+  id            Int             @id @default(autoincrement())
+  fechaCreacion DateTime        @default(now())
+  usuarioId     Int
+  estado        ESTADO
+  total         Float
+  PedidoDetalle PedidoDetalle[]
+  Usuario       Usuario         @relation(fields: [usuarioId], references: [id])
+}
+
+model PedidoDetalle {
+  id             Int     @id @default(autoincrement())
+  pedidoId       Int
+  cancionId      Int
+  formato        FORMATO
+  cantidad       Int
+  precioSnapshot Float
+  pedido         Pedido  @relation(fields: [pedidoId], references: [id])
+  cancion        Cancion @relation(fields: [cancionId], references: [id])
+}
